@@ -1,12 +1,15 @@
-import React from 'react';
+import React,{ useRef, useEffect } from 'react';
 import { FlatList, Text, View, StyleSheet } from 'react-native';
 import moment from 'moment';
+import config from '../../config/config';
 
 const valueDate = (date1, date2) => {
-    const format = "HH:mm-DD-MM-YYYY";
-    const moment1 = moment(date1, format);
-    const moment2 = moment(date2, format);
-    return moment2.diff(moment1, 'days') >= 1;
+  const moment1 = moment(date1);
+  const moment2 = moment(date2);
+  return moment2.diff(moment1, 'days') >= 1;
+}
+const converToHour = (date) => {
+  return moment(date).format('hh:mm A');
 }
 
 const MessageItem = ({ chat, showDate }) => (
@@ -14,18 +17,18 @@ const MessageItem = ({ chat, showDate }) => (
         {showDate && (
             <View style={styles.DateContainer}>
                 <Text style={styles.date}>
-                    {moment(chat.date, "HH:mm-DD-MM-YYYY").format("DD/MM/YYYY")}
+                  {moment(chat.messages.timestamp).format("DD/MM/YYYY")}
                 </Text>
             </View>
         )}
-        <View style={chat.user === 2 ? styles.chatContainerReceptor : styles.chatContainerEmisor}>
-            <View style={chat.user === 2 ? styles.chatReceptor : styles.chatEmisor}>
+        <View style={chat.messages[0]?.sender != config.PhoneNumber ? styles.chatContainerReceptor : styles.chatContainerEmisor}>
+            <View style={chat.messages[0]?.sender != config.PhoneNumber ? styles.chatReceptor : styles.chatEmisor}>
                 <Text style={styles.Text}>
-                    {chat.message}
+                    {chat.messages[0]?.content}
                 </Text>
                 <View style={styles.hourContainer}>
                     <Text style={styles.hour}>
-                        {chat.date.split('-').slice(0, 1).join('').split(':').slice(0, 2).join(':')}
+                        {converToHour(chat.messages[0]?.timestamp)}
                     </Text>
                 </View>
             </View>
@@ -33,16 +36,24 @@ const MessageItem = ({ chat, showDate }) => (
     </View>
 );
 
-export default function Messages({chatMessages }) {
-    const renderItem = ({ item, index }) => {
-        const showDate = index === 0 || valueDate(chatMessages[index - 1].date, item.date);
-        return <MessageItem chat={item} showDate={showDate} />;
-    };
+export default function Messages({chatMessages}) {
+  const flatListRef = useRef();
+
+    useEffect(() => {
+        if (flatListRef.current) {
+            flatListRef.current.scrollToEnd({ animated: false });
+        }
+    }, [chatMessages]);
+  const renderItem = ({ item, index }) => {
+    const showDate = index === 0 || valueDate(chatMessages[index - 1].messages.timestamp, item.messages.timestamp);
+    return <MessageItem chat={item} showDate={showDate} />;
+};
     return (
         <FlatList
+        ref={flatListRef}
         data={chatMessages}
         renderItem={renderItem}
-        keyExtractor={(item) => item.key.toString()}
+        keyExtractor={(item) => item._id.toString()}
         extraData={chatMessages}
         style={{ flex: 1, marginTop: 65, marginBottom: 82 }}
     />
@@ -100,7 +111,7 @@ const styles = StyleSheet.create({
         color: '#444',
       },
       hourContainer:{
-        width: 40,
+        width: 60,
         justifyContent: 'flex-end',
         alignItems:'flex-end',
         

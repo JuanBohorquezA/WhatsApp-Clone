@@ -4,8 +4,8 @@ import Header from '../components/header';
 import Chatview from '../components/ScrollView';
 import DropdownMenu from '../components/dropMenu';
 import {getDataUser} from '../../public/integrations';
-import {getUsersList } from '../../public/integrations';
-import user from '../../public/userList';
+import {getConversations } from '../../public/integrations';
+import config from '../../config/config';
 
 
 const Main = ({ navigation }) => {
@@ -15,7 +15,7 @@ const Main = ({ navigation }) => {
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const data = await getDataUser();
+                const data = await getDataUser(config.PhoneNumber);
                 setUserData(data.data);
             } catch (error) {
                 console.error("Error al obtener los datos del usuario:", error);
@@ -28,7 +28,7 @@ const Main = ({ navigation }) => {
     useEffect(()=>{
       const fetchUsersList = async ()=>{
         try{
-            const data = await getUsersList();
+            const data = await getConversations();
             setUsers(data.data)
         }
         catch (error){

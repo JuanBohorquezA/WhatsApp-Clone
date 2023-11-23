@@ -9,17 +9,15 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 export default function Header({username, profilePhoto, IsPicture,  navigation , view, Data}) {
     var item = {}
     if(!IsPicture && profilePhoto === "_"){
-        let User = user.findUser(username);
         return(
             <View style={styles.navbar}>
                 <View style={styles.container}>
-                    {console.log("DAtA:",Data)}
                     <Icon name='arrow-left' style={styles.iconStyle} onPress={() => navigation.navigate(view,{data:Data})}/>
                 </View>
-                <Image source={User.profilePhoto} style={styles.profilePhoto}/>
+                <Image source={username.Photo} style={styles.profilePhoto}/>
                 <View style={{justifyContent: 'center', alignItems: 'flex-start'}}>
-                    <Text style={styles.username}>{User.username}</Text>
-                    <Text style={styles.data}>last seen {User.lastSeen.split("-").slice(1,4).join("/")} at {User.lastSeen.split("-").slice(0,1)}</Text>
+                    <Text style={styles.username}>{username.Name}</Text>
+                    <Text style={styles.data}>last seen {"Today"}</Text>
 
                 </View>
             </View>

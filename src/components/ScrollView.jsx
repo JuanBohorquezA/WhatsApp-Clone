@@ -1,54 +1,79 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
 import moment from 'moment';
+import config from '../../config/config';
 
 const isToday = (date) => {
-    // Crea un objeto moment para la fecha dada sin formatearla como cadena
-    const givenDate = moment(date, 'HH:mm-DD-MM-YYYY');
+    // Crea un objeto moment para la fecha dada
+    const givenDate = moment(date);
 
     // Crea un objeto moment para la fecha actual
     const today = moment();
 
-    // Compara si ambas fechas son el mismo día
-    return today.isSame(givenDate, 'day')? date.split('-').slice(0, 1).join('').split(':').slice(0, 2).join(':'): date.split('-').slice(1, 4).join('/');
-
+    // Comprueba si la fecha dada es 'hoy'
+    if (today.isSame(givenDate, 'day')) {
+        // Retorna la hora en formato HH:mm AM/PM
+        return givenDate.format('hh:mm A');
+    } else {
+        // Retorna la fecha en formato DD/MM/YYYY
+        return givenDate.format('DD/MM/YYYY');
+    }
 };
-const compareDates = (date1, date2) => {
-    const momentDate1 = moment(date1, 'HH:mm:ss-DD-MM-YYYY');
-    const momentDate2 = moment(date2, 'HH:mm:ss-DD-MM-YYYY');
-    return momentDate1.diff(momentDate2);
-};
+const contacts = (conversation, navigation) => {
+    // Obtener el último mensaje
+    const lastMessage = conversation.messages[conversation.messages.length - 1];
 
+    // Determinar cuál de los participantes es el otro usuario
+    const indexOtherParticipant = conversation.participants.findIndex(p => p !== config.PhoneNumber);
+    const otherParticipant = conversation.participantDetails[indexOtherParticipant];
+    const phoneOtherParticipant = conversation.participants[indexOtherParticipant];
 
-const contacts = (user, navigation)=>{
-    const handlePress = (Id) => {
-        navigation.navigate('Chat', {userId: Id});
+    const handlePress = () => {
+        navigation.navigate('Chat', { PhoneNumber: phoneOtherParticipant });
     };
+
     return (
-        <TouchableOpacity key={user._id} onPress={() => handlePress(user._id)}>
-                <View style={styles.container}>
-                    <Image source={user.Photo} style={styles.profilePhoto}/>
-                    <View style={styles.chatContainer}>                  
-                        <View style={styles.TextContainer}>
-                            <Text style={styles.username}>
-                                {user.Name.length > 20 ? user.Name.substring(0, 20)+'...' : user.Name}
-                            </Text>
-                            {/* <Text style={styles.date}>{isToday(user.Chat[user.Chat.length-1].date)}</Text> */}
-                        </View>               
-                        <Text style={styles.lastChat}>
-                            {/* {(user.Chat[user.Chat.length-1].message.length > 20) ? user.Chat[user.Chat.length-1].message.substring(0, 20)+'...' : user.Chat[user.Chat.length-1].message} */}
-                        </Text> 
+        <TouchableOpacity key={conversation._id} onPress={handlePress}>
+            <View style={styles.container}>
+                <Image source={{ uri: otherParticipant.Photo }} style={styles.profilePhoto}/>
+                <View style={styles.chatContainer}>
+                    <View style={styles.TextContainer}>
+                        <Text style={styles.username}>
+                            {otherParticipant.Name.length > 20 ? otherParticipant.Name.substring(0, 20) + '...' : otherParticipant.Name}
+                        </Text>
+                        {lastMessage && (
+                            <Text style={styles.date}>
+                                {isToday(lastMessage.timestamp)}
+                            </Text> 
+                        )}
                     </View>
-                    
+                    {lastMessage && (                 
+                        <Text style={styles.lastChat}>
+                            {lastMessage.content.length > 20 ? lastMessage.content.substring(0, 20) + '...' : lastMessage.content}
+                        </Text>
+                    )}
                 </View>
+            </View>
         </TouchableOpacity>
-    )
-}
+    );
+};
+
 export default function Chatviews({navigation, data}) {
-     // Ordenar usuarios por la fecha del último mensaje
-     return (
+    const sortedData = data.sort((a, b) => {
+        // Asegurarse de que hay mensajes en las conversaciones
+        if (a.messages.length > 0 && b.messages.length > 0) {
+            const lastMessageA = a.messages[a.messages.length - 1];
+            const lastMessageB = b.messages[b.messages.length - 1];
+
+            // Convertir las fechas a objetos moment para la comparación
+            return moment(lastMessageB.timestamp).diff(moment(lastMessageA.timestamp));
+        }
+        return 0;
+    });
+
+    return (
         <FlatList
-            data={data}
+            data={sortedData}
             renderItem={({ item }) => contacts(item, navigation)}
             keyExtractor={(item) => item._id.toString()}
             extraData={data}

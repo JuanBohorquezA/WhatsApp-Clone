@@ -1,44 +1,81 @@
 import React,{useEffect, useState} from 'react';
-import { StyleSheet, SafeAreaView, ImageBackground,TextInput } from 'react-native';
+import { StyleSheet, SafeAreaView, ImageBackground,TextInput, View } from 'react-native';
 import Header from '../components/header';
 import DropdownMenu from '../components/dropMenu';
 import Messages from '../components/chat';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import user from '../../public/userList';
-
+import {getChat,getDataUser,postSendMessage} from '../../public/integrations';
 
 
 export default function Chat({navigation, route}) {
     const [chatMessages, setChatMessages] = useState([]);
-    const {userId} = route.params;
+    const [userData, setUserData] = useState([]);
+    const {PhoneNumber} = route.params;
     useEffect(() => {
-        const userFound = user.findUser(userId);
-        if (userFound && userFound.Chat) {
-            setChatMessages(userFound.Chat);
-            
+        const fetchUserData = async () => {
+            try {
+                const data = await getChat(PhoneNumber  );
+                setChatMessages(data.data);
+            } catch (error) {
+                console.error("Error al obtener los datos del usuario:", error);
+            }
+        };
+        fetchUserData();
+    }, [PhoneNumber]);
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const data = await getDataUser(PhoneNumber);
+                setUserData(data.data);
+            } catch (error) {
+                console.error("Error al obtener los datos del usuario:", error);
+            }
+        };
+        fetchUserData();
+    }, [PhoneNumber]);
+    const fetchChatMessages = async () => {
+        try {
+            const data = await getChat(PhoneNumber);
+            setChatMessages(data.data);
+        } catch (error) {
+            console.error("Error al obtener los mensajes del chat:", error);
         }
-    }, [userId]);
+    };
+    
+    useEffect(() => {
+        fetchChatMessages();
+    }, [PhoneNumber]);
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            fetchChatMessages();
+        }, 1000); // Actualiza cada 1 segundos
+    
+        return () => clearInterval(intervalId); // Limpieza al salir
+    }, [PhoneNumber]);
+    
    return(
         <SafeAreaView style={styles.container}>
                 <ImageBackground
                     source={require('../assets/Images/BG.png')}
                     style={styles.backgroundImage}  
                     >
-                    <Header username={userId} IsPicture={false} profilePhoto={'_'} navigation={navigation}  view={'principal'} />
+                    <Header username={userData} IsPicture={false} profilePhoto={'_'} navigation={navigation}  view={'principal'} />
                     <DropdownMenu />
-                    <Messages chatMessages={chatMessages}/>
-                    {ChatInput({userId})}
+                    <Messages chatMessages={chatMessages}/>        
+                    <ChatInput PhoneNumber={PhoneNumber} onSendMessage={fetchChatMessages}/>
                 </ImageBackground>
         </SafeAreaView>
    )
 }
 
-function ChatInput({userId}) {
+function ChatInput({PhoneNumber, onSendMessage}) {
     const [text, setText] = useState('');
-    const AddMessage = (message) => {
+    const AddMessage = async(message) => {
         setText('');
         if(message != ""){  
-            user.addMessage(userId, message);
+            await postSendMessage(PhoneNumber, message);
+            onSendMessage(); // Llama a esta función después de enviar el mensaje
         }
     }
     return(
@@ -54,6 +91,7 @@ function ChatInput({userId}) {
        </SafeAreaView>
     )
 }
+
 
 const styles = StyleSheet.create({
     container: {
